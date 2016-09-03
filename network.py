@@ -3,6 +3,7 @@ import  tensorflow as tf
 from  data_encoder_decoeder import  encode_to_tfrecords,decode_from_tfrecords,get_batch,get_test_batch
 import  cv2
 import  os
+from  layers import  batch_norm
 #根据队列流数据格式，解压出一张图片后，输入一张图片，对其做预处理、及样本随机扩充
 class network(object):
     def __init__(self):
@@ -37,24 +38,26 @@ class network(object):
 
 
         #第一层
-        conv1=tf.nn.bias_add(tf.nn.conv2d(images, self.weights['conv1'], strides=[1, 1, 1, 1], padding='VALID'),
-                             self.biases['conv1'])
+        conv1=tf.nn.conv2d(images, self.weights['conv1'], strides=[1, 1, 1, 1], padding='VALID')
+        #conv1=tf.nn.bias_add(conv1,self.biases['conv1'])
 
-
+        conv1 = batch_norm(conv1, 20, True,'conv1')
         relu1= tf.nn.relu(conv1)
         pool1=tf.nn.max_pool(relu1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
 
         #第二层
-        conv2=tf.nn.bias_add(tf.nn.conv2d(pool1, self.weights['conv2'], strides=[1, 1, 1, 1], padding='VALID'),
-                             self.biases['conv2'])
+        conv2=tf.nn.conv2d(pool1, self.weights['conv2'], strides=[1, 1, 1, 1], padding='VALID')
+        #conv2=tf.nn.bias_add(conv2,self.biases['conv2'])
+        conv2 = batch_norm(conv2, 40, True,'conv2')
         relu2= tf.nn.relu(conv2)
         pool2=tf.nn.max_pool(relu2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
 
         # 第三层
-        conv3=tf.nn.bias_add(tf.nn.conv2d(pool2, self.weights['conv3'], strides=[1, 1, 1, 1], padding='VALID'),
-                             self.biases['conv3'])
+        conv3=tf.nn.conv2d(pool2, self.weights['conv3'], strides=[1, 1, 1, 1], padding='VALID')
+        #conv3=tf.nn.bias_add(conv3,self.biases['conv3'])
+        conv3 = batch_norm(conv3, 60, True,'conv3')
         relu3= tf.nn.relu(conv3)
         pool3=tf.nn.max_pool(relu3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
@@ -62,39 +65,44 @@ class network(object):
         # 全连接层1，先把特征图转为向量
         flatten = tf.reshape(pool3, [-1, self.weights['fc1'].get_shape().as_list()[0]])
 
-        drop1=tf.nn.dropout(flatten,0.5)
-        fc1=tf.matmul(drop1, self.weights['fc1'])+self.biases['fc1']
+        #drop1=tf.nn.dropout(flatten,0.5)
+        fc1=tf.matmul(flatten, self.weights['fc1'])
+        #fc1=fc1+self.biases['fc1']
+        fc1=batch_norm(fc1,1000,True,'fc1')
 
         fc_relu1=tf.nn.relu(fc1)
-
-        fc2=tf.matmul(fc_relu1, self.weights['fc2'])+self.biases['fc2']
+        fc2=tf.matmul(fc_relu1, self.weights['fc2'])
+        #fc2=fc2+self.biases['fc2']
+        fc2=batch_norm(fc2,1000,True,'fc2')
 
         return  fc2
     def inference_test(self,images):
-                # 向量转为矩阵
+          # 向量转为矩阵
         images = tf.reshape(images, shape=[-1, 39,39, 3])# [batch, in_height, in_width, in_channels]
         images=(tf.cast(images,tf.float32)/255.-0.5)*2#归一化处理
 
 
 
         #第一层
-        conv1=tf.nn.bias_add(tf.nn.conv2d(images, self.weights['conv1'], strides=[1, 1, 1, 1], padding='VALID'),
-                             self.biases['conv1'])
-
+        conv1=tf.nn.conv2d(images, self.weights['conv1'], strides=[1, 1, 1, 1], padding='VALID')
+        #conv1=tf.nn.bias_add(conv1,self.biases['conv1'])
+        conv1 = batch_norm(conv1, 20,False,'conv1')
         relu1= tf.nn.relu(conv1)
         pool1=tf.nn.max_pool(relu1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
 
         #第二层
-        conv2=tf.nn.bias_add(tf.nn.conv2d(pool1, self.weights['conv2'], strides=[1, 1, 1, 1], padding='VALID'),
-                             self.biases['conv2'])
+        conv2=tf.nn.conv2d(pool1, self.weights['conv2'], strides=[1, 1, 1, 1], padding='VALID')
+        #conv2=tf.nn.bias_add(conv2,self.biases['conv2'])
+        conv2 = batch_norm(conv2, 40, False,'conv2')
         relu2= tf.nn.relu(conv2)
         pool2=tf.nn.max_pool(relu2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
 
         # 第三层
-        conv3=tf.nn.bias_add(tf.nn.conv2d(pool2, self.weights['conv3'], strides=[1, 1, 1, 1], padding='VALID'),
-                             self.biases['conv3'])
+        conv3=tf.nn.conv2d(pool2, self.weights['conv3'], strides=[1, 1, 1, 1], padding='VALID')
+        #conv3=tf.nn.bias_add(conv3,self.biases['conv3'])
+        conv3 = batch_norm(conv3, 60,False,'conv3')
         relu3= tf.nn.relu(conv3)
         pool3=tf.nn.max_pool(relu3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
@@ -102,12 +110,17 @@ class network(object):
         # 全连接层1，先把特征图转为向量
         flatten = tf.reshape(pool3, [-1, self.weights['fc1'].get_shape().as_list()[0]])
 
-        fc1=tf.matmul(flatten, self.weights['fc1'])+self.biases['fc1']
+        #drop1=tf.nn.dropout(flatten,0.5)
+        fc1=tf.matmul(flatten, self.weights['fc1'])
+        #fc1=fc1+self.biases['fc1']
+        fc1=batch_norm(fc1,1000,False,'fc1')
+
         fc_relu1=tf.nn.relu(fc1)
+        fc2=tf.matmul(fc_relu1, self.weights['fc2'])
+        #fc2=fc2+self.biases['fc2']
+        fc2=batch_norm(fc2,1000,False,'fc2')
 
-        fc2=tf.matmul(fc_relu1, self.weights['fc2'])+self.biases['fc2']
-
-        return  fc2
+        return fc2
 
     #计算softmax交叉熵损失函数
     def sorfmax_loss(self,predicts,labels):
@@ -117,14 +130,14 @@ class network(object):
         self.cost= loss
         return self.cost
     #梯度下降
-    def optimer(self,loss,lr=0.001):
+    def optimer(self,loss,lr=0.1):
         train_optimizer = tf.train.GradientDescentOptimizer(lr).minimize(loss)
 
         return train_optimizer
 
 
 def train():
-    encode_to_tfrecords("data/train.txt","data",'train.tfrecords',(45,45))
+    #encode_to_tfrecords("data/train.txt","data",'train.tfrecords',(45,45))
     image,label=decode_from_tfrecords('data/train.tfrecords')
     batch_image,batch_label=get_batch(image,label,batch_size=50,crop_size=39)#batch 生成测试
 
@@ -142,7 +155,7 @@ def train():
 
 
     #验证集所用
-    encode_to_tfrecords("data/val.txt","data",'val.tfrecords',(45,45))
+    #encode_to_tfrecords("data/val.txt","data",'val.tfrecords',(45,45))
     test_image,test_label=decode_from_tfrecords('data/val.tfrecords',num_epoch=None)
     test_images,test_labels=get_test_batch(test_image,test_label,batch_size=120,crop_size=39)#batch 生成测试
     test_inf=net.inference_test(test_images)
@@ -160,8 +173,8 @@ def train():
         threads = tf.train.start_queue_runners(coord=coord)
         max_iter=100000
         iter=0
-        if os.path.exists(os.path.join("model",'model.ckpt')) is True:
-            tf.train.Saver(max_to_keep=None).restore(session, os.path.join("model",'model.ckpt'))
+        '''if os.path.exists(os.path.join("model",'model.ckpt')) is True:
+            tf.train.Saver(max_to_keep=None).restore(session, os.path.join("model",'model.ckpt'))'''
         while iter<max_iter:
             loss_np,_,label_np,image_np,inf_np=session.run([loss,opti,batch_label,batch_image,inf])
             #print image_np.shape
