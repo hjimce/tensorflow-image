@@ -52,6 +52,7 @@ target/
 .jpg
 data/
 model/
+log/
 .txt
 
 # Specified for project
