@@ -82,14 +82,17 @@ class binary(object):
 
         return train_optimizers
 class quantization(object):
-    def __init__(self):
-
-        self.codes=[]
+    def __init__(self,number_cluster=10):
+        with tf.variable_scope('codebook'):
+            code=tf.get_variable("code_book",shape=(number_cluster,))
+        onedims=[]
         for v in tf.all_variables():
-            with tf.variable_scope('codebook'):
-                code=tf.get_variable(v.name.split(':')[0],v.get_shape().as_list()[-1])
-                self.codes.append(code)
-
+            #with tf.variable_scope('codebook'):
+            #    code=tf.get_variable(v.name.split(':')[0],v.get_shape().as_list()[-1])
+            onedims.append(tf.squeeze(tf.reshape(v,(-1,1))))
+            #self.codes.append(code)
+        data=tf.concat(0,onedims)
+        print data
    # def quantize(self):
 
 

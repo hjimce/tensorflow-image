@@ -157,12 +157,16 @@ def train():
     loss=net.sorfmax_loss(inf,batch_label)
     opti=net.optimer(loss)
 
+    tf.histogram_summary("weights",tf.all_variables()[0])#卷积层conv1滤波器w1
+    #tf.scalar_summary("cost_function", loss)#损失函数值
+
+
 
 
     #验证集所用
     #encode_to_tfrecords("data/val.txt","data",'val.tfrecords',(45,45))
     test_image,test_label=decode_from_tfrecords('data/val.tfrecords',num_epoch=None)
-    test_images,test_labels=get_test_batch(test_image,test_label,batch_size=120,crop_size=39)#batch 生成测试
+    test_images,test_labels=get_test_batch(test_image,test_label,batch_size=240,crop_size=39)#batch 生成测试
     test_inf=net.inference_test(test_images)
     correct_prediction = tf.equal(tf.cast(tf.argmax(test_inf,1),tf.int32), test_labels)
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -176,19 +180,24 @@ def train():
 
 
     #二值网络
-    binary_obj=binary()
+    '''binary_obj=binary()
     binary_weights=binary_obj.binary_network()
     binary_opti=binary_obj.optimer(loss)
-    [zero_num,all_num]=binary_obj.cout_ones()
+    [zero_num,all_num]=binary_obj.cout_ones()'''
 
 
 
 
 
-    quantion=quantization()
+    #quantion=quantization()
 
     init=tf.initialize_all_variables()
+    merged_summary_op = tf.merge_all_summaries()
     with tf.Session() as session:
+
+        summary_writer = tf.train.SummaryWriter('log', session.graph)
+
+
 
         session.run(init)
         coord = tf.train.Coordinator()
@@ -196,20 +205,25 @@ def train():
 
         if os.path.exists(os.path.join("model",'model_ori.ckpt')) is True:
             tf.train.Saver(max_to_keep=None).restore(session, os.path.join("model",'model_ori.ckpt'))
+        accuracy_np=session.run([accuracy])
+        print "ori accuracy:",accuracy_np
 
     #第一阶段：训练阶段
-        '''max_iter=100000
+        max_iter=1000000
         iter=0
         while iter<max_iter:
             #方案1
-            loss_np,_=session.run([loss,opti])
+            summary_str,loss_np,_=session.run([merged_summary_op,loss,opti])
+
+            summary_writer.add_summary(summary_str, iter)
             if iter%50==0:
-                print 'trainloss:',loss_np
+                print 'number iter:%s'%iter,'****************trainloss:%s'%loss_np
             if iter%500==0 and iter!=0:
                 accuracy_np=session.run([accuracy])
                 print '***************test accruacy:',accuracy_np,'*******************'
                 tf.train.Saver(max_to_keep=None).save(session, os.path.join('model','model_ori.ckpt'))
-            iter+=1'''
+
+            iter+=1
 
 
 
@@ -217,9 +231,9 @@ def train():
 
 
     #第二阶段：prune阶段
-        '''if os.path.exists(os.path.join("model",'model_prune_finetuning.ckpt')) is True:
-            tf.train.Saver(max_to_keep=None).restore(session, os.path.join("model",'model_prune_finetuning.ckpt'))'''
-        '''zero_num_np,all_num_np=session.run([zero_num,all_num])
+        '''if os.path.exists(os.path.join("model",'model_ori.ckpt')) is True:
+            tf.train.Saver(max_to_keep=None).restore(session, os.path.join("model",'model_ori.ckpt'))
+        zero_num_np,all_num_np=session.run([zero_num,all_num])
         print "原始还未修剪，参数为0个数：",zero_num_np,"***,参数总数：",all_num_np
         for ptime in range(10):
             session.run(prune_weights)
@@ -240,37 +254,6 @@ def train():
                     print '迭代第',iter,'次trainloss:',loss_np
 
                 iter+=1'''
-
-
-
-    #第三阶段 二值网络
-        codes_np=session.run([quantion.code])
-        print codes_np
-
-        zero_num_np,all_num_np=session.run([zero_num,all_num])
-        print "原始还未修剪，参数为1个数：",zero_num_np,"***,参数总数：",all_num_np
-        for btime in range(100):
-            session.run(binary_weights)
-            zero_num_np,all_num_np=session.run([zero_num,all_num])
-            print "修剪后，初次参数为1个数：",zero_num_np,"***,参数总数：",all_num_np
-            iter=0
-            max_iter=10000
-            while iter<max_iter:
-                if iter%500==0 and iter!=0:
-                    zero_num_np,all_num_np=session.run([zero_num,all_num])
-                    print "修剪后训练过程中，参数为1个数：",zero_num_np,"***,参数总数：",all_num_np
-                    accuracy_np=session.run([accuracy])
-                    print '***************test accruacy:',accuracy_np,'*******************'
-                    tf.train.Saver(max_to_keep=None).save(session, os.path.join('model','model_prune_finetuning.ckpt'))
-
-                loss_np,_=session.run([loss,binary_opti])
-                if iter%100==0:
-                    print '迭代第',iter,'次trainloss:',loss_np
-
-                iter+=1
-
-
-
 
 
 
