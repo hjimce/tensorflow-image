@@ -73,7 +73,7 @@ def get_batch(image, label, batch_size,crop_size):
 #这个是用于测试阶段，使用的get_batch函数
 def get_test_batch(image, label, batch_size,crop_size):
         #数据扩充变换
-    distorted_image=tf.image.central_crop(image,39./45.)
+    distorted_image=tf.image.central_crop(image,76./90.)
     distorted_image = tf.random_crop(distorted_image, [crop_size, crop_size, 3])#随机裁剪
     images, label_batch=tf.train.batch([distorted_image, label],batch_size=batch_size)
     return images, tf.reshape(label_batch, [batch_size])
