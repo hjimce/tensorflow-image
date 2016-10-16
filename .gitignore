@@ -54,6 +54,9 @@ data/
 model/
 log/
 .txt
+.ckpt
+.JPEG
+.png
 
 # Specified for project
 *~

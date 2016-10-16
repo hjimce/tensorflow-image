@@ -1,4 +1,6 @@
 #coding=utf-8
+#对一批训练数据，里面包含多个文件夹，每个文件夹下面存放的是相同类别的物体
+# 根据这些文件夹生成列表、切分验证、训练集数据
 import os
 import shutil
 import  random

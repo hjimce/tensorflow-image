@@ -1,3 +1,5 @@
+#coding=utf-8
+#对输入的图片，变换填充成正方形，并resize到256*256
 import cv2
 import os
 from multiprocessing import  Pool
