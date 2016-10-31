@@ -48,15 +48,15 @@ coverage.xml
 docs/_build/
 # PyBuilder
 target/
-.pyc
-.jpg
+*.pyc
+*.jpg
 data/
 model/
 log/
-.txt
+*.txt
 .ckpt
-.JPEG
-.png
+*.JPEG
+*.png
 
 # Specified for project
 *~

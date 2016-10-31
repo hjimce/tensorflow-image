@@ -141,7 +141,7 @@ class network(object):
 
 def train():
     tf.set_random_seed(1)
-    #encode_to_tfrecords("data/train.txt","data",'train.tfrecords',(45,45))
+    encode_to_tfrecords("data/train.txt","data",'train.tfrecords',(45,45))
     image,label=decode_from_tfrecords('data/train.tfrecords')
     batch_image,batch_label=get_batch(image,label,batch_size=64,crop_size=39)#batch 生成测试
 
