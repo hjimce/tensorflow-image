@@ -1,7 +1,7 @@
 #coding=utf-8
 
 import  tensorflow as tf
-from  preprocess.data_encoder_decoeder import  encode_to_tfrecords,decode_from_tfrecords,get_batch,get_test_batch,preload_data,batch_inputs
+from  preprocess.data_encoder_decoeder import  encode_to_tfrecords,decode_from_tfrecords,get_batch,get_test_batch
 import  cv2
 import  os
 from  algorithms.layers import  batch_norm
@@ -170,10 +170,10 @@ def train(ori_size=45,crop_size=39,train_batchsize=64,test_batchsize=240):
         batch_image,batch_label=get_batch(image,label,batch_size=batch_size,crop_size=crop_size)#batch 生成测试
             #验证集所用
         #encode_to_tfrecords("../data/mutil-light/val.txt","../data/mutil-light",'val.tfrecords',(45,45))
-        test_image,test_label=decode_from_tfrecords('../data/mutil-light/val.tfrecords',num_epoch=None)
+        test_image,test_label=decode_from_tfrecords('../data/mutil-light/val.tfrecords',istrain=False,num_epoch=None)
         test_images,test_labels=get_test_batch(test_image,test_label,batch_size=batch_size,crop_size=crop_size,ori_size=ori_size)#batch 生成测试
 
-    #batch_image, batch_label = batch_inputs('../data/mutil-light/train.tfrecords',64)
+
 
 
         #网络链接,训练所用

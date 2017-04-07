@@ -40,10 +40,33 @@ def encode_to_tfrecords(lable_file,data_root,new_name='data.tfrecords',resize=No
 
     writer.close()
 #读取tfrecords文件
-def decode_from_tfrecords(filename,num_epoch=None):
-    filename_queue=tf.train.string_input_producer([filename],num_epochs=num_epoch)#因为有的训练数据过于庞大，被分成了很多个文件，所以第一个参数就是文件列表名参数
+def decode_from_tfrecords(filename,istrain=True,num_epoch=None):
+    filename_queue=tf.train.string_input_producer([filename,filename,filename,filename],num_epochs=num_epoch)#因为有的训练数据过于庞大，被分成了很多个文件，所以第一个参数就是文件列表名参数
+
+    '''if istrain:
+        examples_queue = tf.RandomShuffleQueue(
+            capacity=10 + 3 * 64,
+            min_after_dequeue=10,
+            dtypes=[tf.string])
+        enqueue_ops = []
+        for _ in range(1):
+            _, value = tf.TFRecordReader().read(filename_queue)
+            enqueue_ops.append(examples_queue.enqueue([value]))
+
+        tf.train.queue_runner.add_queue_runner(tf.train.queue_runner.QueueRunner(examples_queue, enqueue_ops))
+        serialized = examples_queue.dequeue()
+    else:'''
     reader=tf.TFRecordReader()
     _,serialized=reader.read(filename_queue)
+
+
+
+
+
+
+
+
+
     example=tf.parse_single_example(serialized,features={
         'height':tf.FixedLenFeature([],tf.int64),
         'width':tf.FixedLenFeature([],tf.int64),
@@ -86,51 +109,6 @@ def get_test_batch(image, label, batch_size,crop_size,ori_size):
     distorted_image = tf.random_crop(distorted_image, [crop_size, crop_size, 3])#随机裁剪
     images, label_batch=tf.train.batch([distorted_image, label],num_threads=8,batch_size=batch_size)
     return images, tf.reshape(label_batch, [batch_size])
-
-def batch_inputs(dataset, batch_size, train=False, num_preprocess_threads=8,num_readers=4):
-
-    filename_queue = tf.train.string_input_producer([dataset],shuffle=True,capacity=16)
-    examples_queue = tf.RandomShuffleQueue(capacity=1000 + 3 * batch_size,min_after_dequeue=1000,dtypes=[tf.string])
-
-
-    enqueue_ops = []
-    for _ in range(num_readers):
-        reader=tf.TFRecordReader()
-        _, value = reader.read(filename_queue)
-        enqueue_ops.append(examples_queue.enqueue([value]))
-
-    tf.train.queue_runner.add_queue_runner(
-          tf.train.queue_runner.QueueRunner(examples_queue, enqueue_ops))
-    example_serialized = examples_queue.dequeue()
-
-
-    images_and_labels = []
-    for thread_id in range(num_preprocess_threads):
-      # Parse a serialized Example proto to extract the image and metadata.
-        example=tf.parse_single_example(example_serialized,features={
-        'height':tf.FixedLenFeature([],tf.int64),
-        'width':tf.FixedLenFeature([],tf.int64),
-        'nchannel':tf.FixedLenFeature([],tf.int64),
-        'image':tf.FixedLenFeature([],tf.string),
-        'label':tf.FixedLenFeature([],tf.int64)})
-        label_index=tf.cast(example['label'], tf.int32)
-        image_buffer=tf.decode_raw(example['image'],tf.uint8)
-        image_buffer=tf.reshape(image_buffer,tf.pack([
-        tf.cast(example['height'], tf.int32),
-        tf.cast(example['width'], tf.int32),
-        tf.cast(example['nchannel'], tf.int32)]))
-        image = tf.random_crop(image_buffer, [39, 39, 3])#随机裁剪
-        image = tf.image.random_flip_up_down(image)#上下随机翻转
-
-
-
-        images_and_labels.append([image, label_index])
-
-    images, label_index_batch = tf.train.batch_join(images_and_labels,batch_size=batch_size,capacity=2 * num_preprocess_threads * batch_size)
-
-
-    return images, tf.reshape(label_index_batch, [batch_size])
-
 
 
 
